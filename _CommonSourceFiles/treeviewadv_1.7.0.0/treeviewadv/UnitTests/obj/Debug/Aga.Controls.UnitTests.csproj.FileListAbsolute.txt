@@ -1,0 +1,8 @@
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\obj\Debug\Aga.Controls.UnitTests.csprojResolveAssemblyReference.cache
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\bin\Debug\Aga.Controls.UnitTests.dll
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\bin\Debug\Aga.Controls.UnitTests.pdb
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\bin\Debug\Aga.Controls.dll
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\bin\Debug\Microsoft.VisualStudio.QualityTools.UnitTestFramework.dll
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\bin\Debug\Aga.Controls.pdb
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\obj\Debug\Aga.Controls.UnitTests.dll
+C:\_Projects\treeviewadv_1.7.0.0\treeviewadv\UnitTests\obj\Debug\Aga.Controls.UnitTests.pdb

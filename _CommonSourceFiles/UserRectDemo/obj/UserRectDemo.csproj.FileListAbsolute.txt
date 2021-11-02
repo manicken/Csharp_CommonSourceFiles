@@ -1,0 +1,3 @@
+C:\_Projects\_Software\Microsan Calc\UserRectDemo\obj\Debug\ResolveAssemblyReference.cache
+C:\_Projects\_Software\Microsan Calc\UserRectDemo\obj\Debug\UserRectDemo.Form1.resources
+C:\_Projects\_Software\Microsan Calc\UserRectDemo\obj\Debug\UserRectDemo.csproj.GenerateResource.Cache
