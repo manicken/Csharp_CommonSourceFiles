@@ -43,6 +43,7 @@ namespace Microsan
             this.rtxt = new System.Windows.Forms.RichTextBox();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.tsBtnSaveToFile = new System.Windows.Forms.ToolStripButton();
+            this.tsbtnClear = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -61,10 +62,11 @@ namespace Microsan
             // toolStrip1
             // 
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsBtnSaveToFile});
+            this.tsBtnSaveToFile,
+            this.tsbtnClear});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(248, 40);
+            this.toolStrip1.Size = new System.Drawing.Size(248, 38);
             this.toolStrip1.TabIndex = 1;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -73,10 +75,21 @@ namespace Microsan
             this.tsBtnSaveToFile.Image = ((System.Drawing.Image)(resources.GetObject("tsBtnSaveToFile.Image")));
             this.tsBtnSaveToFile.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsBtnSaveToFile.Name = "tsBtnSaveToFile";
-            this.tsBtnSaveToFile.Size = new System.Drawing.Size(97, 37);
+            this.tsBtnSaveToFile.Size = new System.Drawing.Size(81, 35);
             this.tsBtnSaveToFile.Text = "Save To File...";
             this.tsBtnSaveToFile.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.tsBtnSaveToFile.Click += new System.EventHandler(this.tsBtnSaveToFile_Click);
+            // 
+            // tsbtnClear
+            // 
+            this.tsbtnClear.Image = ((System.Drawing.Image)(resources.GetObject("tsbtnClear.Image")));
+            this.tsbtnClear.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbtnClear.Name = "tsbtnClear";
+            this.tsbtnClear.Size = new System.Drawing.Size(36, 35);
+            this.tsbtnClear.Text = "clear";
+            this.tsbtnClear.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
+            this.tsbtnClear.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
+            this.tsbtnClear.Click += new System.EventHandler(this.tsbtnClear_Click);
             // 
             // RichTextBoxForm
             // 
@@ -96,5 +109,7 @@ namespace Microsan
             this.PerformLayout();
 
         }
+
+        private System.Windows.Forms.ToolStripButton tsbtnClear;
     }
 }

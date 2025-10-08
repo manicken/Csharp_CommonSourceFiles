@@ -12,9 +12,15 @@ using System.Windows.Forms;
 using System.Data;
 using System.IO;
 using Crom.Controls.TabbedDocument;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Reflection;
+using Microsoft.VisualBasic;
 
 namespace Microsan
 {
+
+    
     /// <summary>
     /// Description of DataGridViewSendForm.
     /// </summary>
@@ -25,13 +31,15 @@ namespace Microsan
         /// <summary>
         /// 
         /// </summary>
+        /// 
         public Action<string> SendData;
-        
-        public DataSet ds;
-        public DataTable dt;
-        
-        string SaveFileName = System.IO.Path.GetFileNameWithoutExtension(System.Windows.Forms.Application.ExecutablePath) + ".xml";
-        
+
+        public List<SendDataJsonFile> openJsonFiles = new List<SendDataJsonFile>();
+
+        int currentSelectedTabIndex = 0;
+
+        DataGridViewButtonColumn btnColumn = new DataGridViewButtonColumn();
+
         /// <summary>
         /// 
         /// </summary>
@@ -41,94 +49,79 @@ namespace Microsan
             SendData = SendDataHandler;
             
             InitializeComponent();
-            
+
+            btnColumn.HeaderText = "Action";
+            btnColumn.Text = "Send";
+            btnColumn.UseColumnTextForButtonValue = true;
+            dgv.Columns.Add(btnColumn);
+
+            dgv.DataSourceChanged += dgv_DataSourceChanged;
             dgv.CellClick += dgv_CellClick;
             dgv.CellEnter += dgv_CellEnter;
-            
-            TabbedView tabView = new TabbedView();
-            tabView.Font = Fonts.CourierNew;
-            tabView.Location = new Point(0, 0);
-            tabView.Size = new Size(this.Width-16, 20);
-            tabView.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-            this.Controls.Add(tabView);
-            
-  
-            tabView.Add(new TabPageView("hello1.xml"));
-            tabView.Add(new TabPageView("hello2.xml"));
-            tabView.Add(new TabPageView("hello3.xml"));
 
-            //ds = new DataSet("MultiData");
-            
-            dt = new DataTable("SendDataTable");
-            dt.Columns.Add("Data", typeof(string));
-            dt.Columns.Add("click to\nSend", typeof(string));
-            dt.Columns.Add("description", typeof(string));
-                
-            dt.TableNewRow += dt_TableNewRow;
-            
-            //ds.Tables.Add(dt);
-            //ds.Tables.Add(new DataTable(
-            
-            if (File.Exists(SaveFileName))
+            tabCtrl.TabPages.Clear();
+
+            string exePath = Assembly.GetExecutingAssembly().Location;
+            string exeNameWithoutExt = Path.GetFileNameWithoutExtension(exePath);
+
+            string[] filePaths = Directory.GetFiles(Application.StartupPath + "\\" + exeNameWithoutExt, "*.json");
+
+            foreach (string filePath in filePaths)
             {
-                dt.ReadXml(SaveFileName);
+                tabCtrl.TabPages.Add(Path.GetFileName(filePath));
+                openJsonFiles.Add(new SendDataJsonFile(filePath));
             }
-            
-            /*if (File.Exists(SaveFileName + "2.xml"))
+            if (openJsonFiles.Count != 0)
             {
-                ds.ReadXml(SaveFileName + "2.xml");
-            }*/
-   
-            dgv.DataSource = dt;
+                dgv.DataSource = openJsonFiles[0].data;
+                btnColumn.DisplayIndex = 1;
+            }
         }
 
-        
-
-        
-        private void dt_TableNewRow(object sender, DataTableNewRowEventArgs e)
+        private void tabCtrl_SelectedIndexChanged(object sender, EventArgs e)
         {
-            e.Row[1] = "send";
+            int idx = tabCtrl.SelectedIndex;
+            if (idx < 0 || idx >= openJsonFiles.Count) return;
+
+            currentSelectedTabIndex = idx;
+
+            dgv.CellClick -= dgv_CellClick;
+            dgv.CellEnter -= dgv_CellEnter;
+
+            dgv.DataSource = null;
+            dgv.DataSource = openJsonFiles[idx].data;
+            btnColumn.DisplayIndex = 1;
+
+            dgv.CellClick += dgv_CellClick;
+            dgv.CellEnter += dgv_CellEnter;
         }
+
+
+
+        
         private void dgv_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if ((e.ColumnIndex == 1) && (e.RowIndex != -1) && (dt.Rows.Count != 0))
-            {
-                SendData(dt.Rows[e.RowIndex][0].ToString());
-            }
-            
+            if (openJsonFiles[currentSelectedTabIndex].data.Count == 0) return;
+            if (e.ColumnIndex != 0) return;
+            if (e.RowIndex == -1) return;
+
+            string toSend = openJsonFiles[currentSelectedTabIndex].data[e.RowIndex].Data;
+            SendData(toSend);
         }
         /// <summary>
         /// 
         /// </summary>
-        public void SaveXml()
+        public void SaveAllXml()
         {
-            dt.WriteXml(SaveFileName, XmlWriteMode.WriteSchema, true);
-            /*
-            DataTable dt2 = new DataTable("SendDataTable2");
-            dt2.Columns.Add("Data", typeof(string));
-            dt2.Columns.Add("click to\nSend", typeof(string));
-            dt2.Columns.Add("description", typeof(string));
-            dt2.Rows.Add("hello", "send", "world");
-            ds.Tables.Add(dt2);
-            ds.WriteXml(SaveFileName + "2.xml", XmlWriteMode.WriteSchema);
-            */
-            /*
-            StreamWriter sw = new StreamWriter(SaveFileName + "2.xml");
-            //dt.DataSet.DataSetName = "MultiPassData";
-            
-            dt.WriteXml(sw, XmlWriteMode.WriteSchema, true);
-            sw.WriteLine();
-            
-            dt.TableName = "HelloWorld";
-            dt.WriteXml(sw, true);
-            sw.Flush();
-            sw.Close();
-            */
+            for (int i = 0; i < openJsonFiles.Count; i++)
+            {
+                openJsonFiles[i].Save();
+            }
         }
         
         private void this_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SaveXml();
+            SaveAllXml();
             
             if (e.CloseReason == CloseReason.UserClosing)
             {
@@ -140,20 +133,23 @@ namespace Microsan
         
         private void dgv_DataSourceChanged(object sender, EventArgs e)
         {
-            
-            dgv.Columns[0].MinimumWidth = 128;
-            dgv.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dgv.Columns[0].SortMode = DataGridViewColumnSortMode.Programmatic;
-            dgv.Columns[0].DefaultCellStyle.Font = Fonts.CourierNew;
-            dgv.Columns[0].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            dgv.Columns[0].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            
-            dgv.Columns[1].Width = 48;
-            dgv.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
-            dgv.Columns[1].ReadOnly = true;
+            if (dgv.DataSource == null) return;
+            if (dgv.Columns.Count != 3) return;
+            //MessageBox.Show("dgv.Columns.Count" + dgv.Columns.Count);
+
+            dgv.Columns[1].MinimumWidth = 128;
+            dgv.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dgv.Columns[1].SortMode = DataGridViewColumnSortMode.Programmatic;
+            dgv.Columns[1].DefaultCellStyle.Font = Fonts.CourierNew;
             dgv.Columns[1].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             dgv.Columns[1].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            
+            dgv.Columns[0].Width = 48;
+            dgv.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+            dgv.Columns[0].ReadOnly = true;
+            dgv.Columns[0].SortMode = DataGridViewColumnSortMode.Programmatic;
+            dgv.Columns[0].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgv.Columns[0].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
             
             dgv.Columns[2].MinimumWidth = 128;
             dgv.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -227,7 +223,115 @@ namespace Microsan
             }
             //DebugMessage("dgvCellEditTextBox @ GetCharIndexFromPosition:" + index);
         }
-                
-        
+
+        private void tsbtnNewFile_Click(object sender, EventArgs e)
+        {
+            string filePath = "";
+            if (!QuickDialogs.FileSave(Application.StartupPath + "\\" + RuntimeProgramming.SOURCE_FILES_DIR_NAME, "Select the filename..", "JSON files|*.json", out filePath))
+                return;
+
+            tabCtrl.TabPages.Add(Path.GetFileName(filePath));
+            openJsonFiles.Add(new SendDataJsonFile(filePath));
+        }
+
+        private void tsSaveAll_Click(object sender, EventArgs e)
+        {
+            SaveAllXml();
+        }
+
+        private void tsBtnSave_Click(object sender, EventArgs e)
+        {
+            openJsonFiles[currentSelectedTabIndex].Save();
+        }
+
+        private void tsbtnAddNewRowItem_Click(object sender, EventArgs e)
+        {
+            openJsonFiles[currentSelectedTabIndex].data.Add(new SendDataItem());
+           // dgv.Refresh();
+        }
+
+        private void addNewRowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openJsonFiles[currentSelectedTabIndex].data.Add(new SendDataItem());
+            //dgv.Refresh();
+        }
+
+        private void insertNewRowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int index = dgv.CurrentCell?.RowIndex ?? 0;
+            openJsonFiles[currentSelectedTabIndex].data.Insert(index, new SendDataItem());
+            dgv.CurrentCell = dgv.Rows[index].Cells[1];
+            // dgv.Refresh();
+        }
+
+        private void dgv_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            
+        }
+
+        private void dgv_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+            // Ignore clicks outside of valid cells (like column headers)
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+            {
+                dgv.CurrentCell = null;
+                return;
+            }
+
+            dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex]; // select inserted row
+            
+        }
+
+        private void confirmDeleteRowToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int index = dgv.CurrentCell?.RowIndex ?? 0;
+            openJsonFiles[currentSelectedTabIndex].data.RemoveAt(index);
+        }
+
+        private void contextMenuStrip1_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Point pos = tabCtrl.PointToClient(Cursor.Position);
+            for (int i = 0; i < tabCtrl.TabCount; i++)
+            {
+                if (tabCtrl.GetTabRect(i).Contains(pos))
+                {
+                    tabCtrl.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        private void editTextToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string name = Interaction.InputBox(
+                "Enter new tab name:",
+                "Edit tab Name",
+                tabCtrl.SelectedTab.Text
+            );
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                tabCtrl.SelectedTab.Text = name;
+            }
+        }
+
+        private void tabCtrl_MouseDown(object sender, MouseEventArgs e)
+        {
+            /*if (e.Button == MouseButtons.Right)
+            {
+                for (int i = 0; i < tabCtrl.TabCount; i++)
+                {
+                    Rectangle r = tabCtrl.GetTabRect(i);
+                    if (r.Contains(e.Location))
+                    {
+                        tabCtrl.SelectedIndex = i; // select the tab under the mouse
+                        break;
+                    }
+                }
+            }*/
+        }
     }
+
+    
 }

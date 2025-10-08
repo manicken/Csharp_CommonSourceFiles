@@ -13,6 +13,7 @@ using Microsoft.CSharp;
 using System.IO;
 using System.Reflection;
 using System.CodeDom.Compiler;
+using System.Linq;
 
 namespace Microsan
 {
@@ -104,11 +105,20 @@ namespace Microsan
 
         }
         
-        public static string GetEmbeddedTemplateResource(string name)
+        public static string GetEmbeddedTemplateResource(string _name)
         {
+            string name = "";
+            //MessageBox.Show("name:" + name);
             Assembly a = Assembly.GetExecutingAssembly();
-            if (name.StartsWith("."))
-                name = GetEmbeddedResourceName_EndsWith(name);
+            if (_name.StartsWith("."))
+                name = GetEmbeddedResourceName_EndsWith(_name);
+            // ✅ Check if the resource exists first
+            if (name == "")
+            {
+                MessageBox.Show("Resource not found: " + _name);
+                return "";
+            }
+
             using (Stream s = a.GetManifestResourceStream(name))
             using (StreamReader sr = new StreamReader(s))
             {
@@ -186,6 +196,7 @@ namespace Microsan
         }
         public void ShowScriptEditor()
         {
+            
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
 
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;

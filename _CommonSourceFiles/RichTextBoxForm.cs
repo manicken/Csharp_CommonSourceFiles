@@ -17,6 +17,9 @@ namespace Microsan
     /// </summary>
     public partial class RichTextBoxForm : Form
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public RichTextBoxForm()
         {
 
@@ -28,6 +31,15 @@ namespace Microsan
             
             this.VisibleChanged += this_VisibleChanged;
             
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="title"></param>
+        public RichTextBoxForm(string title): this()
+        {
+            this.Text = title;
+           
         }
         
         private void this_VisibleChanged(object sender, EventArgs e)
@@ -100,13 +112,18 @@ namespace Microsan
         private void tsBtnSaveToFile_Click(object sender, EventArgs e)
         {
             string filePath;
-            if (QuickDialog.FileSave(Application.StartupPath, "", "RichText Files|*.rtf", out filePath))
+            if (QuickDialogs.FileSave(Application.StartupPath, "", "RichText Files|*.rtf", out filePath))
             {
                 rtxt.SaveFile(filePath, RichTextBoxStreamType.RichText);
             }
         }
+
+        private void tsbtnClear_Click(object sender, EventArgs e)
+        {
+            rtxt.Clear();
+        }
     }
-    
+
     public static class RichTextExtenstions
     {
         public static void AppendTextLine(this RichTextBox thisRtxtBox, string t, HorizontalAlignment a)
