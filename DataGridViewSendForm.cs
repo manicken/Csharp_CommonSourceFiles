@@ -19,22 +19,23 @@ using Microsoft.VisualBasic;
 
 namespace Microsan
 {
-
-    
     /// <summary>
     /// Description of DataGridViewSendForm.
     /// </summary>
     public partial class DataGridViewSendForm : Form
     {
         private void DebugMessage(string msg) { if (Microsan.Debugger.Message != null) Microsan.Debugger.Message(msg + "\n"); }
-        
+
         /// <summary>
         /// 
         /// </summary>
         /// 
         public Action<string> SendData;
 
-        public List<SendDataJsonFile> openJsonFiles = new List<SendDataJsonFile>();
+        /// <summary>
+        /// This is only a stored local reference
+        /// </summary>
+        List<SendDataJsonItems> sendGroups;
 
         int currentSelectedTabIndex = 0;
 
@@ -46,9 +47,9 @@ namespace Microsan
         /// <param name="SendDataHandler"></param>
         public DataGridViewSendForm(Action<string> SendDataHandler)
         {
-            SendData = SendDataHandler;
-            
             InitializeComponent();
+
+            SendData = SendDataHandler;
 
             btnColumn.HeaderText = "Action";
             btnColumn.Text = "Send";
@@ -59,21 +60,26 @@ namespace Microsan
             dgv.CellClick += dgv_CellClick;
             dgv.CellEnter += dgv_CellEnter;
 
-            tabCtrl.TabPages.Clear();
-
-            string exePath = Assembly.GetExecutingAssembly().Location;
-            string exeNameWithoutExt = Path.GetFileNameWithoutExtension(exePath);
-
-            string[] filePaths = Directory.GetFiles(Application.StartupPath + "\\" + exeNameWithoutExt, "*.json");
-
-            foreach (string filePath in filePaths)
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sendGroups"></param>
+        public void SetData(List<SendDataJsonItems> sendGroups)
+        {
+            this.sendGroups = sendGroups;
+            if (sendGroups.Count == 0)
             {
-                tabCtrl.TabPages.Add(Path.GetFileName(filePath));
-                openJsonFiles.Add(new SendDataJsonFile(filePath));
+                sendGroups.Add(new SendDataJsonItems("New Group", "Rename this group to something meaningful"));
             }
-            if (openJsonFiles.Count != 0)
+            tabCtrl.TabPages.Clear();
+            for (int i = 0;i<sendGroups.Count; i++)
             {
-                dgv.DataSource = openJsonFiles[0].data;
+                tabCtrl.TabPages.Add(TabPageExt.Create(sendGroups[i].Name, sendGroups[i].Note));
+            }
+            if (sendGroups.Count != 0)
+            {
+                dgv.DataSource = sendGroups[0].items;
                 btnColumn.DisplayIndex = 1;
             }
         }
@@ -81,7 +87,7 @@ namespace Microsan
         private void tabCtrl_SelectedIndexChanged(object sender, EventArgs e)
         {
             int idx = tabCtrl.SelectedIndex;
-            if (idx < 0 || idx >= openJsonFiles.Count) return;
+            if (idx < 0 || idx >= sendGroups.Count) return;
 
             currentSelectedTabIndex = idx;
 
@@ -89,53 +95,36 @@ namespace Microsan
             dgv.CellEnter -= dgv_CellEnter;
 
             dgv.DataSource = null;
-            dgv.DataSource = openJsonFiles[idx].data;
+            dgv.DataSource = sendGroups[idx].items;
             btnColumn.DisplayIndex = 1;
 
             dgv.CellClick += dgv_CellClick;
             dgv.CellEnter += dgv_CellEnter;
         }
 
-
-
-        
         private void dgv_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (openJsonFiles[currentSelectedTabIndex].data.Count == 0) return;
+            if (sendGroups[currentSelectedTabIndex].items.Count == 0) return;
             if (e.ColumnIndex != 0) return;
             if (e.RowIndex == -1) return;
 
-            string toSend = openJsonFiles[currentSelectedTabIndex].data[e.RowIndex].Data;
+            string toSend = sendGroups[currentSelectedTabIndex].items[e.RowIndex].Data;
             SendData(toSend);
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        public void SaveAllXml()
-        {
-            for (int i = 0; i < openJsonFiles.Count; i++)
-            {
-                openJsonFiles[i].Save();
-            }
         }
         
         private void this_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SaveAllXml();
-            
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 this.Visible = false;
                 e.Cancel = true;
             }
-            
         }
         
         private void dgv_DataSourceChanged(object sender, EventArgs e)
         {
             if (dgv.DataSource == null) return;
             if (dgv.Columns.Count != 3) return;
-            //MessageBox.Show("dgv.Columns.Count" + dgv.Columns.Count);
 
             dgv.Columns[1].MinimumWidth = 128;
             dgv.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
@@ -161,22 +150,18 @@ namespace Microsan
 
         void dgv_CellEnter(object sender, DataGridViewCellEventArgs e)
         {
-            //DebugMessage("dgv_CellEnter" + MousePosition);
             dgv.BeginEdit(false);
             if (dgv.EditingControl != null)
             {
                 TextBox tb = (TextBox)dgv.EditingControl;
                 int currIndex = tb.GetCharIndexFromPosition(tb.PointToClient(MousePosition));
-            
-            tb.SelectionStart = currIndex;
-            tb.SelectionLength = 0;
-                
+                tb.SelectionStart = currIndex;
+                tb.SelectionLength = 0;
             }
         }
 
         void dgv_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
-           // DebugMessage("dgv_EditingControlShowing" + MousePosition);
             TextBox tb = (TextBox)e.Control;
             if (tb.IsHandleCreated)
                 return;
@@ -185,88 +170,62 @@ namespace Microsan
             tb.MouseMove += tb_MouseMove;
         }
 
-         private void tb_MouseDown(object sender, MouseEventArgs e)
+        /// <summary>
+        /// Fix for GetCharIndexFromPosition() not reaching end of text.
+        /// </summary>
+        private int GetSafeCharIndex(TextBox tb, Point pt)
+        {
+            int idx = tb.GetCharIndexFromPosition(pt);
+
+            // If click is past the right edge of text, move to end
+            int textWidth = TextRenderer.MeasureText(tb.Text, tb.Font).Width;
+            if (pt.X > textWidth)
+                idx = tb.TextLength;
+
+            return idx;
+        }
+
+        private void tb_MouseDown(object sender, MouseEventArgs e)
         {
             TextBox tb = (TextBox)sender;
-            tb.Tag = tb.GetCharIndexFromPosition(e.Location);
+            tb.Tag = GetSafeCharIndex(tb, e.Location);
         }
 
         private void tb_MouseMove(object sender, MouseEventArgs e)
         {
+            if (e.Button != MouseButtons.Left) return;
             TextBox tb = (TextBox)sender;
-            if (e.Button == MouseButtons.Left)
-            {
-                int downIndex = (int)tb.Tag;
-                int currIndex = tb.GetCharIndexFromPosition(e.Location);
-                if (downIndex > currIndex)
-                {
-                    tb.SelectionStart = currIndex;
-                    tb.SelectionLength = downIndex - currIndex;
-                }
-                else
-                {
-                    tb.SelectionStart = downIndex;
-                    tb.SelectionLength = currIndex - downIndex;
-                }
-            }
+            if (tb.Tag is int == false) return;
+
+            int downIndex = (int)tb.Tag;
+            int currIndex = GetSafeCharIndex(tb, e.Location);
+            tb.SelectionStart = Math.Min(downIndex, currIndex);
+            tb.SelectionLength = Math.Abs(downIndex - currIndex);
         }
 
         private void tb_MouseUp(object sender, MouseEventArgs e)
         {
             TextBox tb = (TextBox)sender;
+            if (tb.Tag is int == false) return;
             int downIndex = (int)tb.Tag;
-            int currIndex = tb.GetCharIndexFromPosition(e.Location);
+            int currIndex = GetSafeCharIndex(tb, e.Location);
             if (downIndex == currIndex)
             {
                 tb.SelectionStart = currIndex;
                 tb.SelectionLength = 0;
             }
-            //DebugMessage("dgvCellEditTextBox @ GetCharIndexFromPosition:" + index);
-        }
-
-        private void tsbtnNewFile_Click(object sender, EventArgs e)
-        {
-            string filePath = "";
-            if (!QuickDialogs.FileSave(Application.StartupPath + "\\" + RuntimeProgramming.SOURCE_FILES_DIR_NAME, "Select the filename..", "JSON files|*.json", out filePath))
-                return;
-
-            tabCtrl.TabPages.Add(Path.GetFileName(filePath));
-            openJsonFiles.Add(new SendDataJsonFile(filePath));
-        }
-
-        private void tsSaveAll_Click(object sender, EventArgs e)
-        {
-            SaveAllXml();
-        }
-
-        private void tsBtnSave_Click(object sender, EventArgs e)
-        {
-            openJsonFiles[currentSelectedTabIndex].Save();
-        }
-
-        private void tsbtnAddNewRowItem_Click(object sender, EventArgs e)
-        {
-            openJsonFiles[currentSelectedTabIndex].data.Add(new SendDataItem());
-           // dgv.Refresh();
         }
 
         private void addNewRowToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            openJsonFiles[currentSelectedTabIndex].data.Add(new SendDataItem());
-            //dgv.Refresh();
+            sendGroups[currentSelectedTabIndex].items.Add(new SendDataItem());
         }
 
         private void insertNewRowToolStripMenuItem_Click(object sender, EventArgs e)
         {
             int index = dgv.CurrentCell?.RowIndex ?? 0;
-            openJsonFiles[currentSelectedTabIndex].data.Insert(index, new SendDataItem());
+            sendGroups[currentSelectedTabIndex].items.Insert(index, new SendDataItem());
             dgv.CurrentCell = dgv.Rows[index].Cells[1];
-            // dgv.Refresh();
-        }
-
-        private void dgv_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
-        {
-            
         }
 
         private void dgv_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
@@ -286,10 +245,10 @@ namespace Microsan
         private void confirmDeleteRowToolStripMenuItem_Click(object sender, EventArgs e)
         {
             int index = dgv.CurrentCell?.RowIndex ?? 0;
-            openJsonFiles[currentSelectedTabIndex].data.RemoveAt(index);
+            sendGroups[currentSelectedTabIndex].items.RemoveAt(index);
         }
 
-        private void contextMenuStrip1_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        private void tabsContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Point pos = tabCtrl.PointToClient(Cursor.Position);
             for (int i = 0; i < tabCtrl.TabCount; i++)
@@ -300,38 +259,98 @@ namespace Microsan
                     break;
                 }
             }
+            int idx = tabCtrl.SelectedIndex;
+            tsmiMoveTabToLeft.Enabled = (idx > 0);
+            tsmiMoveTabToRight.Enabled = (idx >= 0 && idx < tabCtrl.TabPages.Count - 1);
         }
 
         private void editTextToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string name = Interaction.InputBox(
-                "Enter new tab name:",
-                "Edit tab Name",
-                tabCtrl.SelectedTab.Text
-            );
-
-            if (!string.IsNullOrWhiteSpace(name))
+            var projectMeta = new Dictionary<string, string>()
             {
-                tabCtrl.SelectedTab.Text = name;
+                { "Name", tabCtrl.SelectedTab.Text },
+                { "Note", tabCtrl.SelectedTab.ToolTipText }
+            };
+            var result = MultiInputDialog.Show("Edit Tab Name", projectMeta);
+            if (result != null)
+            {
+                string Name = result["Name"];
+                string Note = result["Note"];
+                tabCtrl.SelectedTab.Text = Name;
+                tabCtrl.SelectedTab.ToolTipText = Note;
+                sendGroups[currentSelectedTabIndex].Name = Name;
+                sendGroups[currentSelectedTabIndex].Note = Note;
             }
         }
 
-        private void tabCtrl_MouseDown(object sender, MouseEventArgs e)
+        private void addTabToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            /*if (e.Button == MouseButtons.Right)
+            var projectMeta = new Dictionary<string, string>()
             {
-                for (int i = 0; i < tabCtrl.TabCount; i++)
-                {
-                    Rectangle r = tabCtrl.GetTabRect(i);
-                    if (r.Contains(e.Location))
-                    {
-                        tabCtrl.SelectedIndex = i; // select the tab under the mouse
-                        break;
-                    }
-                }
-            }*/
+                { "Name", tabCtrl.SelectedTab.Text },
+                { "Note", tabCtrl.SelectedTab.ToolTipText }
+            };
+            var result = MultiInputDialog.Show("Add New Tab", projectMeta);
+            if (result != null)
+            {
+                string Name = result["Name"];
+                string Note = result["Note"];
+                tabCtrl.TabPages.Add(TabPageExt.Create(Name, Note));
+                sendGroups.Add(new SendDataJsonItems(Name, Note));
+            }
+        }
+
+        private void toLeftToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            int idx = tabCtrl.SelectedIndex;
+            if (idx > 0)
+            {
+                tabCtrl.SelectedIndexChanged -= tabCtrl_SelectedIndexChanged;
+                var tp = tabCtrl.TabPages[idx];
+                tabCtrl.TabPages.RemoveAt(idx);
+                tabCtrl.TabPages.Insert(idx - 1, tp);
+                tabCtrl.SelectedIndex = idx - 1; // keep it selected
+                var sendGroupsItem = sendGroups[idx];
+                sendGroups.RemoveAt(idx);
+                sendGroups.Insert(idx - 1, sendGroupsItem);
+                tabCtrl.SelectedIndexChanged += tabCtrl_SelectedIndexChanged;
+            }
+        }
+
+        private void tsmiMoveTabToRight_Click(object sender, EventArgs e)
+        {
+            int idx = tabCtrl.SelectedIndex;
+            if (idx >= 0 && idx < tabCtrl.TabPages.Count - 1)
+            {
+                tabCtrl.SelectedIndexChanged -= tabCtrl_SelectedIndexChanged;
+                var tp = tabCtrl.TabPages[idx];
+                tabCtrl.TabPages.RemoveAt(idx);
+                tabCtrl.TabPages.Insert(idx + 1, tp);
+                tabCtrl.SelectedIndex = idx + 1; // keep it selected
+                var sendGroupsItem = sendGroups[idx];
+                sendGroups.RemoveAt(idx);
+                sendGroups.Insert(idx + 1, sendGroupsItem);
+                tabCtrl.SelectedIndexChanged += tabCtrl_SelectedIndexChanged;
+            }
         }
     }
-
-    
+    /// <summary>
+    /// 
+    /// </summary>
+    public static class TabPageExt
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="title"></param>
+        /// <param name="tooltip"></param>
+        /// <returns></returns>
+        public static TabPage Create(string title, string tooltip = null)
+        {
+            var tp = new TabPage(title);
+            if (tooltip != null)
+                tp.ToolTipText = tooltip;
+            return tp;
+        }
+    }
 }

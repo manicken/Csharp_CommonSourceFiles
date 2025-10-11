@@ -87,5 +87,56 @@ namespace Microsan
             if (e.CloseReason == CloseReason.UserClosing)
                 e.Cancel = true;
         }
+
+        private void txtHostIP_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        /// <summary>
+        /// Fix for GetCharIndexFromPosition() not reaching end of text.
+        /// </summary>
+        private int GetSafeCharIndex(TextBox tb, Point pt)
+        {
+            int idx = tb.GetCharIndexFromPosition(pt);
+
+            // If click is past the right edge of text, move to end
+            int textWidth = TextRenderer.MeasureText(tb.Text, tb.Font).Width;
+            if (pt.X > textWidth)
+                idx = tb.TextLength;
+
+            return idx;
+        }
+
+        private void tb_MouseDown(object sender, MouseEventArgs e)
+        {
+            TextBox tb = (TextBox)sender;
+            tb.Tag = GetSafeCharIndex(tb, e.Location);
+        }
+
+        private void tb_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+            TextBox tb = (TextBox)sender;
+            if (tb.Tag is int == false) return;
+
+            int downIndex = (int)tb.Tag;
+            int currIndex = GetSafeCharIndex(tb, e.Location);
+            tb.SelectionStart = Math.Min(downIndex, currIndex);
+            tb.SelectionLength = Math.Abs(downIndex - currIndex);
+        }
+
+        private void tb_MouseUp(object sender, MouseEventArgs e)
+        {
+            TextBox tb = (TextBox)sender;
+            if (tb.Tag is int == false) return;
+            int downIndex = (int)tb.Tag;
+            int currIndex = GetSafeCharIndex(tb, e.Location);
+            if (downIndex == currIndex)
+            {
+                tb.SelectionStart = currIndex;
+                tb.SelectionLength = 0;
+            }
+        }
     }
 }

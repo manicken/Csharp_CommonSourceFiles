@@ -82,6 +82,9 @@ namespace Microsan
             this.txtMessageStopId.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtMessageStopId.MouseClick += new System.Windows.Forms.MouseEventHandler(this.txtMessageStartStopIds_MouseClick);
             this.txtMessageStopId.Leave += new System.EventHandler(this.txtMessageStartStopIds_Leave);
+            this.txtMessageStopId.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tb_MouseDown);
+            this.txtMessageStopId.MouseMove += new System.Windows.Forms.MouseEventHandler(this.tb_MouseMove);
+            this.txtMessageStopId.MouseUp += new System.Windows.Forms.MouseEventHandler(this.tb_MouseUp);
             // 
             // txtMessageStartId
             // 
@@ -95,6 +98,9 @@ namespace Microsan
             this.txtMessageStartId.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.txtMessageStartId.MouseClick += new System.Windows.Forms.MouseEventHandler(this.txtMessageStartStopIds_MouseClick);
             this.txtMessageStartId.Leave += new System.EventHandler(this.txtMessageStartStopIds_Leave);
+            this.txtMessageStartId.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tb_MouseDown);
+            this.txtMessageStartId.MouseMove += new System.Windows.Forms.MouseEventHandler(this.tb_MouseMove);
+            this.txtMessageStartId.MouseUp += new System.Windows.Forms.MouseEventHandler(this.tb_MouseUp);
             // 
             // btnDisconnect
             // 
@@ -116,6 +122,9 @@ namespace Microsan
             this.txtHostPort.TabIndex = 4;
             this.txtHostPort.Text = "00127";
             this.txtHostPort.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txtHostPort.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tb_MouseDown);
+            this.txtHostPort.MouseMove += new System.Windows.Forms.MouseEventHandler(this.tb_MouseMove);
+            this.txtHostPort.MouseUp += new System.Windows.Forms.MouseEventHandler(this.tb_MouseUp);
             // 
             // label2
             // 
@@ -135,6 +144,10 @@ namespace Microsan
             this.txtHostIP.TabIndex = 2;
             this.txtHostIP.Text = "192.168.001.004";
             this.txtHostIP.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txtHostIP.TextChanged += new System.EventHandler(this.txtHostIP_TextChanged);
+            this.txtHostIP.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tb_MouseDown);
+            this.txtHostIP.MouseMove += new System.Windows.Forms.MouseEventHandler(this.tb_MouseMove);
+            this.txtHostIP.MouseUp += new System.Windows.Forms.MouseEventHandler(this.tb_MouseUp);
             // 
             // btnConnect
             // 

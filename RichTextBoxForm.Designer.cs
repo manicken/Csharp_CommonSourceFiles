@@ -100,6 +100,7 @@ namespace Microsan
             this.Controls.Add(this.rtxt);
             this.Name = "RichTextBoxForm";
             this.Opacity = 0.96D;
+            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Output";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.this_FormClosing);

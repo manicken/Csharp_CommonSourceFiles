@@ -32,7 +32,20 @@ namespace Microsan
         /// 
         /// </summary>
         public string Name { get; set; } = "";
-
+        /// <summary>
+        /// 
+        /// </summary>
+        public string Note { get; set; } = "";
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="note"></param>
+        public SendDataJsonItems(string name, string note)
+        {
+            this.Name = name;
+            this.Note = note;
+        }
         /// <summary>
         /// 
         /// </summary>
@@ -43,6 +56,7 @@ namespace Microsan
             try
             {
                 jsonStr += "\"name\":" + JsonConvert.SerializeObject(Name) + ",";
+                jsonStr += "\"note\":" + JsonConvert.SerializeObject(Note) + ",";
                 jsonStr += "\"items\":[\n";
                 int count = items.Count;
                 for (int i = 0; i < count; i++)
