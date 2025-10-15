@@ -13,7 +13,9 @@ using Microsoft.CSharp;
 using System.IO;
 using System.Reflection;
 using System.CodeDom.Compiler;
+
 using System.Linq;
+using System.CodeDom;
 
 namespace Microsan
 {
@@ -80,30 +82,11 @@ namespace Microsan
                 this.RootObject = this;
             else
                 this.RootObject = rootObject;
-           
-            
-            if (!System.IO.Directory.Exists(currDir + SOURCE_FILES_DIR_NAME))
-                System.IO.Directory.CreateDirectory(currDir + SOURCE_FILES_DIR_NAME);
 
-            if (!System.IO.File.Exists(currDir + SOURCE_FILES_DIR_NAME + "\\" + RootClassName + ".cs"))
-                CreateNewRootSourceFile();
-            else if (new System.IO.FileInfo(currDir + SOURCE_FILES_DIR_NAME + "\\" + RootClassName + ".cs").Length == 0)
-                CreateNewRootSourceFile();
-
-            sourceFiles = new List<SourceFile>();
-            string[] files = System.IO.Directory.GetFiles(currDir + SOURCE_FILES_DIR_NAME, "*.cs");
-            for (int i = 0; i < files.Length; i++)
-            {
-                sourceFiles.Add(new SourceFile(files[i], true));
-            }
-            EmptyRuntimeCompileOutputFolder();
-
-            csSharpCodeProvider = new CSharpCodeProvider();
-            compilerParams = new CompilerParameters();
-            
             Init_CSSharpRuntimeCompiler();
-
         }
+
+        
         
         public static string GetEmbeddedTemplateResource(string _name)
         {
@@ -136,6 +119,11 @@ namespace Microsan
         
         private void Init_CSSharpRuntimeCompiler()
         {
+            EmptyRuntimeCompileOutputFolder();
+
+            csSharpCodeProvider = new CSharpCodeProvider();
+            compilerParams = new CompilerParameters();
+
             foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 try
@@ -191,20 +179,44 @@ namespace Microsan
             srcEditCtrl.Save = srcEditCtrl_Save;
             srcEditCtrl.Execute = srcEditCtrl_ExecuteCode;
             srcEditCtrl.SaveAll = srcEditCtrl_SaveAll;
-            
-            //srcEditCtrl.docked = true;
+
+            if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
+
         }
         public void ShowScriptEditor()
         {
-            
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
-
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
-
+            LoadSourceFilesFromDisc();
             srcEditCtrl.Show(sourceFiles, RootClassName + ".cs");
-
-            //ListEmbeddedResources();
         }
+
+        public void ShowScriptEditor(List<SourceFile> sourceFiles)
+        {
+            if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
+            if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
+            this.sourceFiles = sourceFiles;
+            srcEditCtrl.Show(sourceFiles, RootClassName + ".cs", true);
+        }
+
+        private void LoadSourceFilesFromDisc()
+        {
+            if (!System.IO.Directory.Exists(currDir + SOURCE_FILES_DIR_NAME))
+                System.IO.Directory.CreateDirectory(currDir + SOURCE_FILES_DIR_NAME);
+
+            if (!System.IO.File.Exists(currDir + SOURCE_FILES_DIR_NAME + "\\" + RootClassName + ".cs"))
+                CreateNewRootSourceFile();
+            else if (new System.IO.FileInfo(currDir + SOURCE_FILES_DIR_NAME + "\\" + RootClassName + ".cs").Length == 0)
+                CreateNewRootSourceFile();
+
+            sourceFiles = new List<SourceFile>();
+            string[] files = System.IO.Directory.GetFiles(currDir + SOURCE_FILES_DIR_NAME, "*.cs");
+            for (int i = 0; i < files.Length; i++)
+            {
+                sourceFiles.Add(new SourceFile(files[i], true));
+            }
+        }
+
         private void Init_SrcEditCtrl_ContainerForm()
         {
             //srcEditCtrl.AppendLineToLog("--Init_SrcEditCtrl_ContainerForm");
@@ -281,8 +293,18 @@ namespace Microsan
             string[] sourceFilePaths = new string[sourceFiles.Count];
             for (int i = 0; i < sourceFilePaths.Length; i++)
                 sourceFilePaths[i] = sourceFiles[i].FullFilePath;
-
+            
             CompilerResults results = csSharpCodeProvider.CompileAssemblyFromFile(compilerParams, sourceFilePaths);
+
+            
+            /*string[] sources = new string[2];
+            sources[0] = "";
+            sources[1] = "";
+            CodeCompileUnit[] units = new CodeCompileUnit[2];
+            units[0] = new CodeSnippetCompileUnit(sources[0]) { UserData = { ["FileName"] = "test1.cs" } };
+            units[1] = new CodeSnippetCompileUnit(sources[1]) { UserData = { ["FileName"] = "test2.cs" } };
+
+            csSharpCodeProvider.CompileAssemblyFromDom(compilerParams, units);*/
 
             if (results.Errors.HasErrors)
             {

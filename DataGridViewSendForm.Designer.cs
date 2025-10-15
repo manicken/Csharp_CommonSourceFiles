@@ -159,13 +159,13 @@ namespace Microsan
             this.editTextToolStripMenuItem,
             this.moveToolStripMenuItem});
             this.tabsContextMenu.Name = "tabsContextMenu";
-            this.tabsContextMenu.Size = new System.Drawing.Size(151, 98);
+            this.tabsContextMenu.Size = new System.Drawing.Size(181, 120);
             this.tabsContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.tabsContextMenu_Opening);
             // 
             // addTabToolStripMenuItem
             // 
             this.addTabToolStripMenuItem.Name = "addTabToolStripMenuItem";
-            this.addTabToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.addTabToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.addTabToolStripMenuItem.Text = "Add tab";
             this.addTabToolStripMenuItem.Click += new System.EventHandler(this.addTabToolStripMenuItem_Click);
             // 
@@ -174,24 +174,25 @@ namespace Microsan
             this.removeTabToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.confirmToolStripMenuItem1});
             this.removeTabToolStripMenuItem.Name = "removeTabToolStripMenuItem";
-            this.removeTabToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.removeTabToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.removeTabToolStripMenuItem.Text = "Remove tab";
             // 
             // confirmToolStripMenuItem1
             // 
             this.confirmToolStripMenuItem1.Name = "confirmToolStripMenuItem1";
-            this.confirmToolStripMenuItem1.Size = new System.Drawing.Size(118, 22);
+            this.confirmToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.confirmToolStripMenuItem1.Text = "Confirm";
+            this.confirmToolStripMenuItem1.Click += new System.EventHandler(this.confirmToolStripMenuItem1_Click);
             // 
             // toolStripSeparator5
             // 
             this.toolStripSeparator5.Name = "toolStripSeparator5";
-            this.toolStripSeparator5.Size = new System.Drawing.Size(147, 6);
+            this.toolStripSeparator5.Size = new System.Drawing.Size(177, 6);
             // 
             // editTextToolStripMenuItem
             // 
             this.editTextToolStripMenuItem.Name = "editTextToolStripMenuItem";
-            this.editTextToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.editTextToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.editTextToolStripMenuItem.Text = "Change Name";
             this.editTextToolStripMenuItem.Click += new System.EventHandler(this.editTextToolStripMenuItem_Click);
             // 
@@ -201,7 +202,7 @@ namespace Microsan
             this.tsmiMoveTabToLeft,
             this.tsmiMoveTabToRight});
             this.moveToolStripMenuItem.Name = "moveToolStripMenuItem";
-            this.moveToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.moveToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.moveToolStripMenuItem.Text = "Move";
             // 
             // tsmiMoveTabToLeft

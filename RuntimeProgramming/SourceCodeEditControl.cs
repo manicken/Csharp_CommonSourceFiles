@@ -45,6 +45,8 @@ namespace Microsan
         public bool docked = false;
         
         private bool init = false;
+
+        private bool virtualFiles = false;
         
         private List<SourceFile> sourceFilesRef;
 
@@ -58,7 +60,7 @@ namespace Microsan
 		public SourceCodeEditControl(Language language)
 		{
 			InitializeComponent();
-
+            
             fctb.Language = language;
 
             dtLog = new DataTable();
@@ -71,17 +73,35 @@ namespace Microsan
             dgv.DataSource = dtLog;
             fastColoredTextBox_setRightClickContextMenu();
             
-            tc.DragOver += tc_DragOver;
-            tc.MouseDown += tc_MouseDown;
-            tc.MouseMove += tc_MouseMove;
-            tc.MouseUp += tc_MouseUp;
-            tc.Selected += tc_Selected;
-            tc.SelectedIndexChanged += tc_SelectedIndexChanged;
+            tabCtrl.DragOver += tc_DragOver;
+            tabCtrl.MouseDown += tc_MouseDown;
+            tabCtrl.MouseMove += tc_MouseMove;
+            tabCtrl.MouseUp += tc_MouseUp;
+            tabCtrl.Selected += tc_Selected;
+            tabCtrl.SelectedIndexChanged += tc_SelectedIndexChanged;
             dgv.CellClick += dgv_CellClick;
-
+            tabCtrl.MouseUp += TabCtrl_MouseUp;
+            tabsContextMenu.Opening += tabsContextMenu_Opening;
+            tabCtrl.ContextMenuStrip = tabsContextMenu;
             //ac = new Autocomplete(fctb);
-           // ac.Debug = ac_Debug;
+            // ac.Debug = ac_Debug;
 
+        }
+
+        private void TabCtrl_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                for (int i = 0; i < tabCtrl.TabCount; i++)
+                {
+                    if (tabCtrl.GetTabRect(i).Contains(e.Location))
+                    {
+                        tabCtrl.SelectedIndex = i;
+                        tabCtrl.ContextMenuStrip?.Show(tabCtrl, e.Location);
+                        break;
+                    }
+                }
+            }
         }
 
         private void ac_Debug(string text)
@@ -100,23 +120,24 @@ namespace Microsan
         private void tcContextMenuCloseFile_Click(object sender, EventArgs e)
         {
             int index = (int)((MenuItem)sender).Tag;
-            tc.TabPages.RemoveAt(index);
+            tabCtrl.TabPages.RemoveAt(index);
         }
 
-        public void Show(List<SourceFile> sourceFiles, string fileName_main)
+        public void Show(List<SourceFile> sourceFiles, string fileName_main, bool virtualFiles = false)
         {
+            this.virtualFiles = virtualFiles;
             sourceFilesRef = sourceFiles;
             
             tsBtnSave.Enabled = (Save != null);
             tsSaveAll.Enabled = (SaveAll != null);
             tsBtnExec.Enabled = (Execute != null) && (SaveAll != null);
             init = true;
-            tc.TabPages.Clear();
+            tabCtrl.TabPages.Clear();
             
             for (int i = 0; i < sourceFiles.Count; i++)
             {
                 string fileNameTemp = sourceFiles[i].FileName;
-                tc.TabPages.Add(fileNameTemp, fileNameTemp);
+                tabCtrl.TabPages.Add(fileNameTemp, fileNameTemp);
                 
             }
             
@@ -170,7 +191,7 @@ namespace Microsan
         private void tsBtnSave_Click(object sender, EventArgs e)
         {
             ((SourceFile)fctb.Tag).Contents = fctb.Text;
-            Save(tc.SelectedTab.Name);
+            Save(tabCtrl.SelectedTab.Name);
         }
         private void tsSaveAll_Click(object sender, EventArgs e)
         {
@@ -356,15 +377,42 @@ namespace Microsan
         private void SelectFileTab(string fileName)
         {
             fileName = fileName.ToLower();
-            for (int i = 0; i < tc.TabCount; i++)
+            for (int i = 0; i < tabCtrl.TabCount; i++)
             {
-                if (tc.TabPages[i].Name.ToLower() == fileName)
+                if (tabCtrl.TabPages[i].Name.ToLower() == fileName)
                 {
-                    tc.SelectedTab = tc.TabPages[i];
+                    tabCtrl.SelectedTab = tabCtrl.TabPages[i];
                     return;
                 }
             }
         }
+        private void tabsContextMenu_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // the following selects a tab directly when right clicked
+            Point pos = tabCtrl.PointToClient(Cursor.Position);
+            for (int i = 0; i < tabCtrl.TabCount; i++)
+            {
+                if (tabCtrl.GetTabRect(i).Contains(pos))
+                {
+                    tabCtrl.SelectedIndex = i;
+                    break;
+                }
+            }
+
+            int idx = tabCtrl.SelectedIndex;
+            if (tabCtrl.SelectedTab.Text == "RootClass.cs")
+            {
+                tsmiChangeTabName.Enabled = false;
+                tsmiRemoveTabConfirm.Enabled = false;
+                tsmiRemoveTabMenu.Enabled = false;
+            } else
+            {
+                tsmiChangeTabName.Enabled = true;
+                tsmiRemoveTabConfirm.Enabled = true;
+                tsmiRemoveTabMenu.Enabled = true;
+            }
+        }
+
         private void tc_MouseDown(object sender, MouseEventArgs e)
         {
             // store clicked tab
@@ -460,11 +508,11 @@ namespace Microsan
         }
         private void tc_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (tc.SelectedTab == null)
+            if (tabCtrl.SelectedTab == null)
                 return;
             if (init) return;
 
-            SelectFile(tc.SelectedTab.Text);
+            SelectFile(tabCtrl.SelectedTab.Text);
             //tc.SelectedTab.Font = new Font(tc.SelectedTab.Font, FontStyle.Bold);
         }
         
@@ -522,10 +570,43 @@ namespace Microsan
             
             sourceFilesRef.Add(sf);
             
-            tc.TabPages.Add(sf.FileName, sf.FileName);
+            tabCtrl.TabPages.Add(sf.FileName, sf.FileName);
             sf = null;
         }
 
-        
+        private void tsmiRemoveTabConfirm_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tsmiChangeTabName_Click(object sender, EventArgs e)
+        {
+            var projectMeta = new Dictionary<string, string>()
+            {
+                { "Name", System.IO.Path.GetFileNameWithoutExtension(tabCtrl.SelectedTab.Text) },
+                { "Note", tabCtrl.SelectedTab.ToolTipText }
+            };
+            var result = MultiInputDialog.Show("Edit Tab Name", projectMeta);
+            if (result != null)
+            {
+                string Name = result["Name"] + ".cs";
+                string Note = result["Note"];
+                tabCtrl.SelectedTab.Text = Name;
+                tabCtrl.SelectedTab.ToolTipText = Note;
+                if (virtualFiles == false)
+                {
+                    string prevFilePath = sourceFilesRef[tabCtrl.SelectedIndex].FullFilePath;
+                    sourceFilesRef[tabCtrl.SelectedIndex].FileName = Name;
+                    string newFilePath = sourceFilesRef[tabCtrl.SelectedIndex].FullFilePath;
+                    System.IO.File.Move(prevFilePath, newFilePath);
+                }
+                else
+                {
+                    sourceFilesRef[tabCtrl.SelectedIndex].FileName = Name;
+                }
+                
+            }
+            
+        }
     }
 }

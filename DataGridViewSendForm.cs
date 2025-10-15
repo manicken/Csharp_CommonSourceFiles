@@ -333,6 +333,13 @@ namespace Microsan
                 tabCtrl.SelectedIndexChanged += tabCtrl_SelectedIndexChanged;
             }
         }
+
+        private void confirmToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            int idx = tabCtrl.SelectedIndex;
+            tabCtrl.TabPages.RemoveAt(idx);
+            sendGroups.RemoveAt(idx);
+        }
     }
     /// <summary>
     /// 
