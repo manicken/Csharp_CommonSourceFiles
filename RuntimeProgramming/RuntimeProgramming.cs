@@ -16,6 +16,8 @@ using System.CodeDom.Compiler;
 
 using System.Linq;
 using System.CodeDom;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace Microsan
 {
@@ -195,6 +197,23 @@ namespace Microsan
         {
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
+            bool rootFileNeedsToBeCreated = true;
+            string rootFileName = RootClassName + ".cs";
+            for (int i=0;i<sourceFiles.Count;i++)
+            {
+                if (sourceFiles[i].FileName == rootFileName)
+                {
+                    rootFileNeedsToBeCreated = false;
+                    break;
+                }
+            }
+            if (rootFileNeedsToBeCreated)
+            {
+                SourceFile sf = new SourceFile();
+                sf.FileName = rootFileName;
+                sf.Contents = GetEmbeddedTemplateResource(RES_NAME_ROOT_CLASS_TEMPLATE);
+                sourceFiles.Insert(0, sf);
+            }
             this.sourceFiles = sourceFiles;
             srcEditCtrl.Show(sourceFiles, RootClassName + ".cs", true);
         }
@@ -441,13 +460,13 @@ namespace Microsan
     }
     public class SourceFile
     {
-        public string FileName = "";
-        public string FileDirPath = "";
-        public string Contents = "";
-        public int editorSelectionStart = 0;
-        public int editorSelectionLength = 0;
-        public int editorVerticalScrollValue = 0;
-        public int editorHorizontalScrollValue = 0;
+        public string FileName { get; set; } = "";
+        public string FileDirPath { get; set; } = "";
+        public string Contents { get; set; } = "";
+        public int editorSelectionStart { get; set; } = 0;
+        public int editorSelectionLength { get; set; } = 0;
+        public int editorVerticalScrollValue { get; set; } = 0;
+        public int editorHorizontalScrollValue { get; set; } = 0;
         
         public string FileNameWithoutExt
         {
@@ -466,6 +485,11 @@ namespace Microsan
                 FileName = System.IO.Path.GetFileName(value);
                 FileDirPath = System.IO.Path.GetDirectoryName(value);
             }
+        }
+
+        public SourceFile()
+        {
+
         }
         
         /// <summary>
@@ -496,6 +520,32 @@ namespace Microsan
         public void SaveFile()
         {
             System.IO.File.WriteAllText(FullFilePath, Contents);
+        }
+
+        public void SBAppendAsJson(StringBuilder sb, string lineincr, string keyName, object data, bool last)
+        {
+            sb.Append(lineincr);
+            sb.Append("  "); 
+            sb.Append($"  \"{keyName}\": "); 
+            sb.Append(JsonConvert.SerializeObject(data));
+            if (!last) sb.AppendLine(",");
+            else sb.AppendLine();
+        }
+
+        public string ToJsonString(string lineincr)
+        {
+            var sb = new StringBuilder();
+            sb.Append("  "); sb.Append(lineincr); sb.AppendLine("{");
+
+            SBAppendAsJson(sb, lineincr, "fileName", FileName, false);
+            SBAppendAsJson(sb, lineincr, "contents", Contents, false);
+            SBAppendAsJson(sb, lineincr, "editorSelectionStart", editorSelectionStart, false);
+            SBAppendAsJson(sb, lineincr, "editorSelectionLength", editorSelectionLength, false);
+            SBAppendAsJson(sb, lineincr, "editorVerticalScrollValue", editorVerticalScrollValue, false);
+            SBAppendAsJson(sb, lineincr, "editorHorizontalScrollValue", editorHorizontalScrollValue, true);
+
+            sb.Append("  "); sb.Append(lineincr); sb.AppendLine("}");
+            return sb.ToString();
         }
     }
 }

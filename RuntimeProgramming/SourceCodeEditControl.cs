@@ -133,10 +133,11 @@ namespace Microsan
             tsBtnExec.Enabled = (Execute != null) && (SaveAll != null);
             init = true;
             tabCtrl.TabPages.Clear();
-            
+           
             for (int i = 0; i < sourceFiles.Count; i++)
             {
                 string fileNameTemp = sourceFiles[i].FileName;
+                
                 tabCtrl.TabPages.Add(fileNameTemp, fileNameTemp);
                 
             }
@@ -560,18 +561,44 @@ namespace Microsan
         }
         private void tsbtnNewFile_Click(object sender, EventArgs e)
         {
-            string filePath = "";
-            if (!QuickDialogs.FileSave(Application.StartupPath + "\\" + RuntimeProgramming.SOURCE_FILES_DIR_NAME, "Select the filename..", "C# files|*.cs", out filePath))
-                return;
+            SourceFile sf = new SourceFile();
+            
+            if (virtualFiles == false)
+            {
+                string filePath = "";
+                if (!QuickDialogs.FileSave(Application.StartupPath + "\\" + RuntimeProgramming.SOURCE_FILES_DIR_NAME, "Select the filename..", "C# files|*.cs", out filePath))
+                    return;
 
-            SourceFile sf = new SourceFile(filePath);
-            sf.Contents = RuntimeProgramming.GetEmbeddedTemplateResource(RuntimeProgramming.RES_NAME_NEW_CLASS_TEMPLATE).Replace("NewClass", sf.FileNameWithoutExt);
-            sf.SaveFile();
-            
+                sf.FullFilePath = filePath;
+            }
+            else
+            {
+                var projectMeta = new Dictionary<string, string>()
+                {
+                    { "Name", "NewClass" }
+                };
+                var result = MultiInputDialog.Show("Add new sourcefile", projectMeta);
+                if (result != null)
+                {
+                    sf.FileName = result["Name"];
+                }
+                else
+                {
+                    return;
+                }
+            }
+            string newFileContents = RuntimeProgramming.GetEmbeddedTemplateResource(RuntimeProgramming.RES_NAME_NEW_CLASS_TEMPLATE);
+            newFileContents = newFileContents.Replace("NewClass", sf.FileNameWithoutExt);
+            sf.Contents = newFileContents;
+
+            if (virtualFiles == false)
+            {
+                sf.SaveFile();
+            }
+            // else virtual files dont need to save directly        
+                
             sourceFilesRef.Add(sf);
-            
             tabCtrl.TabPages.Add(sf.FileName, sf.FileName);
-            sf = null;
         }
 
         private void tsmiRemoveTabConfirm_Click(object sender, EventArgs e)
