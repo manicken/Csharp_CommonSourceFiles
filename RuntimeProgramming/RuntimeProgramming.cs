@@ -18,6 +18,7 @@ using System.Linq;
 using System.CodeDom;
 using System.Text;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Microsan
 {
@@ -30,6 +31,7 @@ namespace Microsan
         public const string RES_NAME_NEW_CLASS_TEMPLATE = ".NewClass_Template.cs"; // embedded resource
 
         public const string SOURCE_FILES_DIR_NAME = "RuntimeSourceFiles";
+        public const string SOURCE_TEMP_FILES_DIR_NAME = "RuntimeTempSourceFiles";
         public const string COMPILE_TEMP_OUT_DIR_NAME = "RuntimeCompiles";
         public const string RootNameSpace = "RuntimeProgrammingNamespace";
         public const string RootClassName = "RootClass";
@@ -39,6 +41,8 @@ namespace Microsan
         public List<SourceFile> sourceFiles;
         
         public static string RuntimeCompileOutputFolder = System.IO.Directory.GetCurrentDirectory() + "\\" + COMPILE_TEMP_OUT_DIR_NAME + "\\";
+        public static string RuntimeCompileTempSourceFilesOutputFolder = System.IO.Directory.GetCurrentDirectory() + "\\" + SOURCE_TEMP_FILES_DIR_NAME + "\\";
+
         public static string currDir = System.IO.Directory.GetCurrentDirectory() + "\\";
         public int RuntimeCompileCurrentIndex = 0;
 
@@ -329,24 +333,30 @@ namespace Microsan
                 compilerParams.OutputAssembly = RuntimeCompileOutputFolder + "RC_" + RuntimeCompileCurrentIndex++ + ".dll";
             CompilerResults results = null;
 
+            string[] sourceFilePaths = new string[sourceFiles.Count];
+
             if (virtualFiles == false)
             {
-                string[] sourceFilePaths = new string[sourceFiles.Count];
-                for (int i = 0; i < sourceFilePaths.Length; i++)
+                for (int i = 0; i < sourceFiles.Count; i++)
+                {
                     sourceFilePaths[i] = sourceFiles[i].FullFilePath;
-
-                results = csSharpCodeProvider.CompileAssemblyFromFile(compilerParams, sourceFilePaths);
+                }
             }
             else
             {
-                CodeCompileUnit[] units = new CodeCompileUnit[sourceFiles.Count];
+                // first remove old files
+                if (Directory.Exists(RuntimeCompileTempSourceFilesOutputFolder)) {
+                    try { Directory.Delete(RuntimeCompileTempSourceFilesOutputFolder, true); } catch { /* ignore */ }
+                }
+                Directory.CreateDirectory(RuntimeCompileTempSourceFilesOutputFolder);
+
                 for (int i = 0; i < sourceFiles.Count; i++)
                 {
-                    units[i] = new CodeSnippetCompileUnit(sourceFiles[i].Contents) { UserData = { ["FileName"] = sourceFiles[i].FileName } };
+                    sourceFilePaths[i] = Path.Combine(RuntimeCompileTempSourceFilesOutputFolder, sourceFiles[i].FileName);
+                    File.WriteAllText(sourceFilePaths[i], sourceFiles[i].Contents);
                 }
-                results = csSharpCodeProvider.CompileAssemblyFromDom(compilerParams, units);
             }
-
+            results = csSharpCodeProvider.CompileAssemblyFromFile(compilerParams, sourceFilePaths);
 
             if (results.Errors.HasErrors)
             {
@@ -422,6 +432,14 @@ namespace Microsan
             }
         }
 
+        public static string ReplaceIgnoreCase(string source, string oldValue, string newValue)
+        {
+            return Regex.Replace(source,
+                Regex.Escape(oldValue),
+                newValue.Replace("$", "$$"),
+                RegexOptions.IgnoreCase);
+        }
+
         public void TryStart_RootClass_Method(string name)
         {
             try
@@ -432,7 +450,9 @@ namespace Microsan
             }
             catch (Exception ex)
             {
-                srcEditCtrl.AddToDgvLog("", -1, -1, "Exception: " + ex);
+                string exStr = ex.ToString();
+                if (virtualFiles) exStr = ReplaceIgnoreCase(exStr, RuntimeCompileTempSourceFilesOutputFolder, "");
+                srcEditCtrl.AddToDgvLog("", -1, -1, "Run Exception: \n" + exStr);
             }
         }
         public void TryStart_RootClass_Method<T>(string name, T parameter)
@@ -445,7 +465,9 @@ namespace Microsan
             }
             catch (Exception ex)
             {
-                srcEditCtrl.AddToDgvLog("", -1, -1, "Exception: " + ex);
+                string exStr = ex.ToString();
+                if (virtualFiles) exStr = ReplaceIgnoreCase(exStr, RuntimeCompileTempSourceFilesOutputFolder, "");
+                srcEditCtrl.AddToDgvLog("", -1, -1, "Run Exception: \n" + exStr);
             }
         }
 
@@ -458,7 +480,10 @@ namespace Microsan
             }
             catch (Exception ex)
             {
-                srcEditCtrl.AddToDgvLog("", -1, -1, "Exception: " + ex);
+                string exStr = ex.ToString();
+                
+                if (virtualFiles) exStr = ReplaceIgnoreCase(exStr, RuntimeCompileTempSourceFilesOutputFolder, "");
+                srcEditCtrl.AddToDgvLog("", -1, -1, "Run Exception: \n" + exStr);
             }
         }
     }
