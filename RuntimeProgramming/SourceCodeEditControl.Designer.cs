@@ -55,14 +55,14 @@ namespace Microsan
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.toolStrip = new System.Windows.Forms.ToolStrip();
             this.tabCtrl = new System.Windows.Forms.TabControl();
+            this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.tabsContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.tsmiRemoveTabMenu = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmiRemoveTabConfirm = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
             this.tsmiChangeTabName = new System.Windows.Forms.ToolStripMenuItem();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.tabPage3 = new System.Windows.Forms.TabPage();
-            this.tabPage4 = new System.Windows.Forms.TabPage();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.dgv = new System.Windows.Forms.DataGridView();
@@ -108,7 +108,6 @@ namespace Microsan
             this.fctb.CharWidth = 8;
             this.fctb.Cursor = System.Windows.Forms.Cursors.IBeam;
             this.fctb.DisabledColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
-            this.fctb.Font = new System.Drawing.Font("Courier New", 9.75F);
             this.fctb.IsReplaceMode = false;
             this.fctb.Language = FastColoredTextBoxNS.Language.CSharp;
             this.fctb.LeftBracket = '(';
@@ -222,6 +221,8 @@ namespace Microsan
             this.tsBtnOpen.Name = "tsBtnOpen";
             this.tsBtnOpen.Size = new System.Drawing.Size(36, 36);
             this.tsBtnOpen.Text = "Open";
+            this.tsBtnOpen.Visible = false;
+            this.tsBtnOpen.Click += new System.EventHandler(this.tsBtnOpen_Click);
             // 
             // toolStripSeparator2
             // 
@@ -275,42 +276,6 @@ namespace Microsan
             this.tabCtrl.Size = new System.Drawing.Size(590, 23);
             this.tabCtrl.TabIndex = 2;
             // 
-            // tabsContextMenu
-            // 
-            this.tabsContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmiRemoveTabMenu,
-            this.toolStripSeparator6,
-            this.tsmiChangeTabName});
-            this.tabsContextMenu.Name = "tabsContextMenu";
-            this.tabsContextMenu.Size = new System.Drawing.Size(181, 76);
-            // 
-            // tsmiRemoveTabMenu
-            // 
-            this.tsmiRemoveTabMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmiRemoveTabConfirm});
-            this.tsmiRemoveTabMenu.Name = "tsmiRemoveTabMenu";
-            this.tsmiRemoveTabMenu.Size = new System.Drawing.Size(180, 22);
-            this.tsmiRemoveTabMenu.Text = "Remove tab";
-            // 
-            // tsmiRemoveTabConfirm
-            // 
-            this.tsmiRemoveTabConfirm.Name = "tsmiRemoveTabConfirm";
-            this.tsmiRemoveTabConfirm.Size = new System.Drawing.Size(180, 22);
-            this.tsmiRemoveTabConfirm.Text = "Confirm";
-            this.tsmiRemoveTabConfirm.Click += new System.EventHandler(this.tsmiRemoveTabConfirm_Click);
-            // 
-            // toolStripSeparator6
-            // 
-            this.toolStripSeparator6.Name = "toolStripSeparator6";
-            this.toolStripSeparator6.Size = new System.Drawing.Size(177, 6);
-            // 
-            // tsmiChangeTabName
-            // 
-            this.tsmiChangeTabName.Name = "tsmiChangeTabName";
-            this.tsmiChangeTabName.Size = new System.Drawing.Size(180, 22);
-            this.tsmiChangeTabName.Text = "Change Name";
-            this.tsmiChangeTabName.Click += new System.EventHandler(this.tsmiChangeTabName_Click);
-            // 
             // tabPage2
             // 
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
@@ -340,6 +305,42 @@ namespace Microsan
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "file4.cs";
             this.tabPage4.UseVisualStyleBackColor = true;
+            // 
+            // tabsContextMenu
+            // 
+            this.tabsContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsmiRemoveTabMenu,
+            this.toolStripSeparator6,
+            this.tsmiChangeTabName});
+            this.tabsContextMenu.Name = "tabsContextMenu";
+            this.tabsContextMenu.Size = new System.Drawing.Size(151, 54);
+            // 
+            // tsmiRemoveTabMenu
+            // 
+            this.tsmiRemoveTabMenu.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsmiRemoveTabConfirm});
+            this.tsmiRemoveTabMenu.Name = "tsmiRemoveTabMenu";
+            this.tsmiRemoveTabMenu.Size = new System.Drawing.Size(150, 22);
+            this.tsmiRemoveTabMenu.Text = "Remove tab";
+            // 
+            // tsmiRemoveTabConfirm
+            // 
+            this.tsmiRemoveTabConfirm.Name = "tsmiRemoveTabConfirm";
+            this.tsmiRemoveTabConfirm.Size = new System.Drawing.Size(180, 22);
+            this.tsmiRemoveTabConfirm.Text = "Confirm";
+            this.tsmiRemoveTabConfirm.Click += new System.EventHandler(this.tsmiRemoveTabConfirm_Click);
+            // 
+            // toolStripSeparator6
+            // 
+            this.toolStripSeparator6.Name = "toolStripSeparator6";
+            this.toolStripSeparator6.Size = new System.Drawing.Size(147, 6);
+            // 
+            // tsmiChangeTabName
+            // 
+            this.tsmiChangeTabName.Name = "tsmiChangeTabName";
+            this.tsmiChangeTabName.Size = new System.Drawing.Size(150, 22);
+            this.tsmiChangeTabName.Text = "Change Name";
+            this.tsmiChangeTabName.Click += new System.EventHandler(this.tsmiChangeTabName_Click);
             // 
             // splitContainer1
             // 

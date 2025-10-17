@@ -126,11 +126,13 @@ namespace Microsan
         public void Show(List<SourceFile> sourceFiles, string fileName_main, bool virtualFiles = false)
         {
             this.virtualFiles = virtualFiles;
+
             sourceFilesRef = sourceFiles;
-            
+
             tsBtnSave.Enabled = (Save != null);
             tsSaveAll.Enabled = (SaveAll != null);
             tsBtnExec.Enabled = (Execute != null) && (SaveAll != null);
+            tsBtnSave.Visible = !virtualFiles;
             init = true;
             tabCtrl.TabPages.Clear();
            
@@ -196,7 +198,10 @@ namespace Microsan
         }
         private void tsSaveAll_Click(object sender, EventArgs e)
         {
+            // only need to "store" the current "active" tab from the fctb.Text
+            // as fctb is shared
             ((SourceFile)fctb.Tag).Contents = fctb.Text;
+         
             SaveAll();
         }
         private void tsBtnExec_Click(object sender, EventArgs e)
@@ -502,6 +507,9 @@ namespace Microsan
             tc.TabPages[index_dst] = src;
             tc.TabPages[index_src] = dst;
             tc.Refresh();
+            SourceFile sfTemp = sourceFilesRef[index_dst];
+            sourceFilesRef[index_dst] = sourceFilesRef[index_src];
+            sourceFilesRef[index_src] = sfTemp;
         }
         void tc_Selected(object sender, TabControlEventArgs e)
         {
@@ -573,14 +581,17 @@ namespace Microsan
             }
             else
             {
-                var projectMeta = new Dictionary<string, string>()
+                var newSource = new Dictionary<string, string>()
                 {
                     { "Name", "NewClass" }
                 };
-                var result = MultiInputDialog.Show("Add new sourcefile", projectMeta);
+                var result = MultiInputDialog.Show("Add new sourcefile", newSource);
                 if (result != null)
                 {
-                    sf.FileName = result["Name"];
+                    string name = result["Name"];
+                    if (name.ToLower().EndsWith(".cs") == false)
+                        name += ".cs";
+                    sf.FileName = name;
                 }
                 else
                 {
@@ -603,6 +614,9 @@ namespace Microsan
 
         private void tsmiRemoveTabConfirm_Click(object sender, EventArgs e)
         {
+            int idx = tabCtrl.SelectedIndex;
+            tabCtrl.TabPages.RemoveAt(idx);
+            sourceFilesRef.RemoveAt(idx);
 
         }
 
@@ -634,6 +648,11 @@ namespace Microsan
                 
             }
             
+        }
+
+        private void tsBtnOpen_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

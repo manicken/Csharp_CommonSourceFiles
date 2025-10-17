@@ -31,7 +31,7 @@ namespace Microsan
 
         public const string SOURCE_FILES_DIR_NAME = "RuntimeSourceFiles";
         public const string COMPILE_TEMP_OUT_DIR_NAME = "RuntimeCompiles";
-        public const string RootNameSpace = "MyNamespace";
+        public const string RootNameSpace = "RuntimeProgrammingNamespace";
         public const string RootClassName = "RootClass";
         public const string RootMainMethodName = "RootMain";
         public const string RootStartOnceMethodName = "StartOnce";
@@ -56,6 +56,9 @@ namespace Microsan
 
         public bool CompileError = false;
         public bool ScriptChanged = true;
+
+        private bool virtualFiles = false;
+        public Action SaveAll = null;
 
         public static string GetEmbeddedResourceName_EndsWith(string value)
         {
@@ -141,10 +144,16 @@ namespace Microsan
                     // this happens for dynamic assemblies, so just ignore it. 
                 }
             }
+            
             // Reference to System.Drawing library
             //if (!compilerParams.ReferencedAssemblies.Contains("System.Drawing"))
             //    compilerParams.ReferencedAssemblies.Add("System.Drawing.dll");
-            //if (!compilerParams.ReferencedAssemblies.Contains("System.Data"))
+            bool alreadyAdded = compilerParams.ReferencedAssemblies
+                .Cast<string>()
+                .Any(r => Path.GetFileNameWithoutExtension(r)
+                    .Equals("System.Data", StringComparison.OrdinalIgnoreCase));
+
+            if (!alreadyAdded)
                 compilerParams.ReferencedAssemblies.Add("System.Data.dll");
             // True - memory generation, false - external file generation
             compilerParams.GenerateInMemory = false;
@@ -187,6 +196,7 @@ namespace Microsan
         }
         public void ShowScriptEditor()
         {
+            virtualFiles = false;
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
             LoadSourceFilesFromDisc();
@@ -195,6 +205,7 @@ namespace Microsan
 
         public void ShowScriptEditor(List<SourceFile> sourceFiles)
         {
+            virtualFiles = true;
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
             bool rootFileNeedsToBeCreated = true;
@@ -272,10 +283,18 @@ namespace Microsan
         {
             CompileError = false;
             ScriptChanged = true;
-            for (int i = 0; i < sourceFiles.Count; i++)
+            if (virtualFiles == false)
             {
-                sourceFiles[i].SaveFile();
+                for (int i = 0; i < sourceFiles.Count; i++)
+                {
+                    sourceFiles[i].SaveFile();
+                }
             }
+            else
+            {
+                SaveAll?.Invoke();
+            }
+            
         }
 
         private void srcEditCtrl_ExecuteCode()
@@ -308,22 +327,26 @@ namespace Microsan
                 compilerParams.OutputAssembly = RuntimeCompileOutputFolder + "RC_" + RuntimeCompileCurrentIndex++ + ".exe";
             else
                 compilerParams.OutputAssembly = RuntimeCompileOutputFolder + "RC_" + RuntimeCompileCurrentIndex++ + ".dll";
+            CompilerResults results = null;
 
-            string[] sourceFilePaths = new string[sourceFiles.Count];
-            for (int i = 0; i < sourceFilePaths.Length; i++)
-                sourceFilePaths[i] = sourceFiles[i].FullFilePath;
-            
-            CompilerResults results = csSharpCodeProvider.CompileAssemblyFromFile(compilerParams, sourceFilePaths);
+            if (virtualFiles == false)
+            {
+                string[] sourceFilePaths = new string[sourceFiles.Count];
+                for (int i = 0; i < sourceFilePaths.Length; i++)
+                    sourceFilePaths[i] = sourceFiles[i].FullFilePath;
 
-            
-            /*string[] sources = new string[2];
-            sources[0] = "";
-            sources[1] = "";
-            CodeCompileUnit[] units = new CodeCompileUnit[2];
-            units[0] = new CodeSnippetCompileUnit(sources[0]) { UserData = { ["FileName"] = "test1.cs" } };
-            units[1] = new CodeSnippetCompileUnit(sources[1]) { UserData = { ["FileName"] = "test2.cs" } };
+                results = csSharpCodeProvider.CompileAssemblyFromFile(compilerParams, sourceFilePaths);
+            }
+            else
+            {
+                CodeCompileUnit[] units = new CodeCompileUnit[sourceFiles.Count];
+                for (int i = 0; i < sourceFiles.Count; i++)
+                {
+                    units[i] = new CodeSnippetCompileUnit(sourceFiles[i].Contents) { UserData = { ["FileName"] = sourceFiles[i].FileName } };
+                }
+                results = csSharpCodeProvider.CompileAssemblyFromDom(compilerParams, units);
+            }
 
-            csSharpCodeProvider.CompileAssemblyFromDom(compilerParams, units);*/
 
             if (results.Errors.HasErrors)
             {

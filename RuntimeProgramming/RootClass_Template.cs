@@ -10,7 +10,8 @@ using Microsan;
 //using System.Drawing;
 //using System.IO.Ports;
 
-namespace MyNamespace
+// note the following namespace cannot be changed
+namespace RuntimeProgrammingNamespace
 { 
     public class RootClass
     {
