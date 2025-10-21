@@ -64,6 +64,8 @@ namespace Microsan
         private bool virtualFiles = false;
         public Action SaveAll = null;
 
+        public Action CompiledAndRunning = null;
+
         public static string GetEmbeddedResourceName_EndsWith(string value)
         {
             Assembly a = Assembly.GetExecutingAssembly();
@@ -209,12 +211,24 @@ namespace Microsan
 
         public void ShowScriptEditor(List<SourceFile> sourceFiles)
         {
-            virtualFiles = true;
+            
             if (srcEditCtrl.Parent == null) Init_SrcEditCtrl_ContainerForm();
             if (srcEditContainerForm != null) srcEditContainerForm.Visible = true;
+            SetSourceFiles(sourceFiles);
+            srcEditCtrl.Show(sourceFiles, RootClassName + ".cs", true);
+        }
+
+        /// <summary>
+        /// This is only used when using virtual files,
+        /// note this method sets virtualFiles = true
+        /// </summary>
+        /// <param name="sourceFiles"></param>
+        public void SetSourceFiles(List<SourceFile> sourceFiles)
+        {
+            virtualFiles = true;
             bool rootFileNeedsToBeCreated = true;
             string rootFileName = RootClassName + ".cs";
-            for (int i=0;i<sourceFiles.Count;i++)
+            for (int i = 0; i < sourceFiles.Count; i++)
             {
                 if (sourceFiles[i].FileName == rootFileName)
                 {
@@ -230,7 +244,6 @@ namespace Microsan
                 sourceFiles.Insert(0, sf);
             }
             this.sourceFiles = sourceFiles;
-            srcEditCtrl.Show(sourceFiles, RootClassName + ".cs", true);
         }
 
         private void LoadSourceFilesFromDisc()
@@ -301,24 +314,73 @@ namespace Microsan
             
         }
 
-        private void srcEditCtrl_ExecuteCode()
+        public void ExecuteDefaultCode()
         {
             CompileError = false;
             if (CompileAndGetMainMethodDelegate())
                 TryStart_MainMethod();
+        }
 
+        private void srcEditCtrl_ExecuteCode()
+        {
+            ExecuteDefaultCode();
+            CompiledAndRunning?.Invoke();
         }
         public bool CompileAndGetMainMethodDelegate()
         {
             if (CompileError) return false;
             if (!CompileCode())
             {
-                CompileError = true; // only way to set this to false is by user input
+                CompileError = true;
                 return false;
             }
-            if (!GetMethodDelegate<object>(RootNameSpace, RootClassName, RootMainMethodName, out MainMethodDelegate))
+
+            MethodInfo mainMethod;
+
+            // ✅ Try explicit name first (for backwards compatibility)
+            GetMethodInfoRes res = GetMethodInfo(RootNameSpace, RootClassName, RootMainMethodName, out mainMethod);
+            if (res != GetMethodInfoRes.Success)
+            {
+                // 🔍 Fallback: try to auto-detect "Main" or [EntryPoint]
+                mainMethod = FindAutoEntryMethod();
+                if (mainMethod == null)
+                {
+                    PrintGetMethodInfoResErrors(res, RootNameSpace, RootClassName, RootMainMethodName);
+                    return false;
+                }
+                    
+            }
+
+            try
+            {
+                MainMethodDelegate = mainMethod.GetDelegate<object>();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                srcEditCtrl.AddToDgvLog("", -1, -1, "Delegate creation failed: " + ex.Message);
                 return false;
-            return true;
+            }
+        }
+
+
+        private MethodInfo FindAutoEntryMethod()
+        {
+            foreach (var type in CompiledAssembly.GetTypes())
+            {
+                // 1️⃣ Look for [EntryPoint] first
+                var method = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                    .FirstOrDefault(m => m.GetCustomAttributes().Any(a => a.GetType().Name == "EntryPointAttribute"));
+                if (method != null)
+                    return method;
+
+                // 2️⃣ Fallback to static Main() or Run()
+                method = type.GetMethod("Main", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                      ?? type.GetMethod("Run", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                if (method != null)
+                    return method;
+            }
+            return null;
         }
 
         public bool CompileCode()
@@ -370,36 +432,58 @@ namespace Microsan
             return true;
         }
 
-        public bool GetMethodInfo(string namespaceName, string className, string methodName, out MethodInfo methodInfo)
+        public enum GetMethodInfoRes
+        {
+            Success,
+            CompiledAssemblyNull,
+            TypeNotFound,
+            MethodNotFound            
+        }
+        public GetMethodInfoRes GetMethodInfo(string namespaceName, string className, string methodName, out MethodInfo methodInfo)
         {
             if (CompiledAssembly == null || CompileError)
             {
                 methodInfo = null;
-                return false;
+                return GetMethodInfoRes.CompiledAssemblyNull;
             }
             Type binaryFunction = CompiledAssembly.GetType(namespaceName + "." + className);
             if (binaryFunction == null)
             {
-                srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + namespaceName + "." + className + " is not found");
+                //srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + namespaceName + "." + className + " is not found");
                 methodInfo = null;
-                return false;
+                return GetMethodInfoRes.TypeNotFound;
             }
 
             methodInfo = binaryFunction.GetMethod(methodName);
             if (methodInfo == null)
             {
-                srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + methodName + " is not found");
-                return false;
+                //srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + methodName + " is not found");
+                return GetMethodInfoRes.MethodNotFound;
             }
-            return true;
+            return GetMethodInfoRes.Success;
+        }
+
+        private void PrintGetMethodInfoResErrors(GetMethodInfoRes res, string namespaceName, string className, string methodName)
+        {
+            if (res == GetMethodInfoRes.CompiledAssemblyNull)
+                srcEditCtrl.AddToDgvLog("", -1, -1, "error: CompiledAssemblyNull");
+            else if (res == GetMethodInfoRes.TypeNotFound)
+                srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + namespaceName + "." + className + "/Main-method/[EntryPoint] is not found");
+            else if (res == GetMethodInfoRes.MethodNotFound)
+                srcEditCtrl.AddToDgvLog("", -1, -1, "error: " + methodName + "/Main-method/[EntryPoint] is not found");
         }
 
         public bool GetMethodDelegate(string namespaceName, string className, string methodName, out Action action)
         {
             MethodInfo methodInfo;
             action = null;
-            if (!GetMethodInfo(namespaceName, className, methodName, out methodInfo))
+            GetMethodInfoRes res = GetMethodInfo(namespaceName, className, methodName, out methodInfo);
+            if (res != GetMethodInfoRes.Success)
+            {
+                PrintGetMethodInfoResErrors(res, namespaceName, className, methodName);
                 return false;
+            }
+                
 
             try
             {
@@ -417,9 +501,12 @@ namespace Microsan
         {
             MethodInfo methodInfo;
             action = null;
-            if (!GetMethodInfo(namespaceName, className, methodName, out methodInfo))
+            GetMethodInfoRes res = GetMethodInfo(namespaceName, className, methodName, out methodInfo);
+            if (res != GetMethodInfoRes.Success)
+            {
+                PrintGetMethodInfoResErrors(res, namespaceName, className, methodName);
                 return false;
-
+            }
             try
             {
                 action = methodInfo.GetDelegate<T>();
@@ -486,7 +573,62 @@ namespace Microsan
                 srcEditCtrl.AddToDgvLog("", -1, -1, "Run Exception: \n" + exStr);
             }
         }
+
+        public List<MethodExecShortcutEntry> GenerateShortcutsFromCompiledAssembly()
+        {
+            var entries = new List<MethodExecShortcutEntry>();
+            if (CompiledAssembly == null || CompileError)
+            {
+                return entries;
+            }
+            foreach (var type in CompiledAssembly.GetTypes())
+            {
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+                {
+                    var attr = method.GetCustomAttribute<ShortcutAttribute>();
+                    if (attr != null)
+                    {
+                        entries.Add(new MethodExecShortcutEntry
+                        {
+                            Namespace = type.Namespace ?? "",
+                            Class = type.Name,
+                            Method = method.Name,
+                            DisplayName = attr.DisplayName,
+                            IconName = attr.IconName,
+                            Execute = method.GetDelegate()
+                        });
+                    }
+                }
+            }
+
+            return entries;
+        }
     }
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class ShortcutAttribute : Attribute
+    {
+        public string DisplayName { get; }
+        public string IconName { get; }  // optional
+
+        public ShortcutAttribute(string displayName, string iconName = null)
+        {
+            DisplayName = displayName;
+            IconName = iconName;
+        }
+    }
+    public class MethodExecShortcutEntry
+    {
+        public string Namespace { get; set; }
+        public string Class { get; set; }
+        public string Method { get; set; }
+        public string DisplayName { get; set; }
+
+        public string IconName { get; set; }
+
+        // Optional cached delegate
+        public Action Execute { get; set; }
+    }
+
     public static class ReflectionExt
     {
         public static Action<T> CreateDelegate<T>(MethodInfo methodInfo)
